@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Consumption Calculator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        select, input {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        table, th, td {
+            border: 1px solid black;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+        }
+        .result {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Data Consumption Calculator</h2>
+        
+        <label for="drivingHoursPerDay">Driving hours per day:</label>
+        <input type="number" id="drivingHoursPerDay" min="1" max="24" value="1">
+
+        <label for="workingDaysPerMonth">Working days in a month:</label>
+        <input type="number" id="workingDaysPerMonth" min="1" max="30" value="1">
+
+        <label for="timeBeforeEvent">Record time before event (in seconds):</label>
+        <input type="number" id="timeBeforeEvent" min="1" max="59" value="1">
+
+        <label for="timeAfterEvent">Record time after event (in seconds):</label>
+        <input type="number" id="timeAfterEvent" min="1" max="59" value="1">
+
+        <label for="eventsPerHour">Number of events per hour:</label>
+        <input type="number" id="eventsPerHour" min="1" max="30" value="1">
+
+        <label for="snapshotUploadResolution">Snapshot upload resolution:</label>
+        <select id="snapshotUploadResolution">
+            <option value="1">Cabin:1280x960 - Road:1920x1280</option>
+            <option value="2">Cabin:640x480 - Road:960x640</option>
+            <option value="4">Cabin:320x240 - Road:480x320</option>
+        </select>
+
+        <label for="videoUploadResolution">Video upload resolution:</label>
+        <select id="videoUploadResolution">
+            <option value="1">Cabin:1280x960 - Road:1920x1280</option>
+            <option value="2">Cabin:640x480 - Road:960x640</option>
+            <option value="4">Cabin:320x240 - Road:480x320</option>
+        </select>
+        
+        <label for="deviceType">Device Type:</label>
+        <select id="deviceType">
+            <option value="DMS">DMS</option>
+            <option value="ADAS">ADAS</option>
+            <option value="DMS+ADAS">DMS + ADAS</option>
+        </select>
+
+        <label for="sdCardSize">SD card size (GB):</label>
+        <select id="sdCardSize">
+            <option value="1">1</option>
+            <option value="4">4</option>
+            <option value="8">8</option>
+            <option value="16">16</option>
+            <option value="32">32</option>
+            <option value="64">64</option>
+            <option value="128">128</option>
+            <option value="256">256</option>
+            <option value="512">512</option>
+            <option value="1024">1024</option>
+        </select>
+
+        <button onclick="calculateDataUsage()">Calculate</button>
+
+        <div class="result">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Data usage per month</th>
+                        <th>Only DMS</th>
+                        <th>Only ADAS</th>
+                        <th>DMS + ADAS</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Events only</td>
+                        <td id="DMS_events"></td>
+                        <td id="ADAS_events"></td>
+                        <td id="DMS_ADAS_events"></td>
+                    </tr>
+                    <tr>
+                        <td>Events + snapshot</td>
+                        <td id="DMS_events_plus_snapshots"></td>
+                        <td id="ADAS_events_plus_snapshots"></td>
+                        <td id="DMS_ADAS_events_plus_snapshots"></td>
+                    </tr>
+                    <tr>
+                        <td>Events + snapshots + videos</td>
+                        <td id="DMS_full"></td>
+                        <td id="ADAS_full"></td>
+                        <td id="DMS_ADAS_full"></td>
+                    </tr>
+                </tbody>
+            </table>
+            <p id="TimeToStoreInSDCard"></p>
+        </div>
+    </div>
+    <script>
+        function calculateDataUsage() {
+            try {
+                // Get input values
+                const deviceType = document.getElementById('deviceType').value;
+                const drivingHoursPerDay = parseInt(document.getElementById('drivingHoursPerDay').value);
+                const workingDaysPerMonth = parseInt(document.getElementById('workingDaysPerMonth').value);
+                const timeBeforeEvent = parseInt(document.getElementById('timeBeforeEvent').value);
+                const timeAfterEvent = parseInt(document.getElementById('timeAfterEvent').value);
+                const eventsPerHour = parseInt(document.getElementById('eventsPerHour').value);
+                const snapshotUploadResolution = parseInt(document.getElementById('snapshotUploadResolution').value);
+                const videoUploadResolution = parseInt(document.getElementById('videoUploadResolution').value);
+                const sdCardSize = parseInt(document.getElementById('sdCardSize').value);
+
+                // Validate input values
+                if (drivingHoursPerDay < 1 || drivingHoursPerDay > 24) throw new Error('Driving hours per day must be between 1 and 24.');
+                if (workingDaysPerMonth < 1 || workingDaysPerMonth > 30) throw new Error('Working days in a month must be between 1 and 30.');
+                if (timeBeforeEvent < 1 || timeBeforeEvent > 59) throw new Error('Record time before event must be between 1 and 59 seconds.');
+                if (timeAfterEvent < 1 || timeAfterEvent > 59) throw new Error('Record time after event must be between 1 and 59 seconds.');
+                if (eventsPerHour < 1 || eventsPerHour > 30) throw new Error('Number of events per hour must be between 1 and 30.');
+                if (![1, 2, 4].includes(snapshotUploadResolution)) throw new Error('Invalid snapshot upload resolution.');
+                if (![1, 2, 4].includes(videoUploadResolution)) throw new Error('Invalid video upload resolution.');
+                if (![1, 4, 8, 16, 32, 64, 128, 256, 512, 1024].includes(sdCardSize)) throw new Error('Invalid SD card size.');
+
+                // Static variables
+                const CipiaPayload = 0.75;
+                const DMS_maxResVideo_in_MB_per_minute = (251 / 1000) * 60;
+                const ADAS_maxResVideo_in_MB_per_minute = (519 / 1000) * 60;
+
+                // Assign sizes based on resolution
+                let DMS_snapshot, DMS_video, ADAS_snapshot, ADAS_video;
+
+                switch (snapshotUploadResolution) {
+                    case 1:
+                        DMS_snapshot = 29;
+                        DMS_video = 251;
+                        break;
+                    case 2:
+                        DMS_snapshot = 14;
+                        DMS_video = 116;
+                        break;
+                    case 4:
+                        DMS_snapshot = 5;
+                        DMS_video = 25;
+                        break;
+                }
+
+                switch (videoUploadResolution) {
+                    case 1:
+                        ADAS_snapshot = 162;
+                        ADAS_video = 519;
+                        break;
+                    case 2:
+                        ADAS_snapshot = 52;
+                        ADAS_video = 163;
+                        break;
+                    case 4:
+                        ADAS_snapshot = 20;
+                        ADAS_video = 36;
+                        break;
+                }
+
+                let videoStoragePerMinute;
+                switch (deviceType) {
+                    case "DMS":
+                        videoStoragePerMinute = DMS_maxResVideo_in_MB_per_minute;
+                        break;
+                    case "ADAS":
+                        videoStoragePerMinute = ADAS_maxResVideo_in_MB_per_minute;
+                        break;
+                    case "DMS+ADAS":
+                        videoStoragePerMinute = DMS_maxResVideo_in_MB_per_minute + ADAS_maxResVideo_in_MB_per_minute;
+                        break;
+                }
+
+                // Perform calculations
+                const DMS_events = (eventsPerHour * drivingHoursPerDay * workingDaysPerMonth) * CipiaPayload;
+                const DMS_events_plus_snapshots = ((eventsPerHour * drivingHoursPerDay * workingDaysPerMonth) * (CipiaPayload + DMS_snapshot)) / 1024;
+                const DMS_full = ((eventsPerHour * drivingHoursPerDay * workingDaysPerMonth) * (CipiaPayload + DMS_snapshot + DMS_video * (timeBeforeEvent + timeAfterEvent))) / (1024 * 1024);
+
+                const ADAS_events = (eventsPerHour * drivingHoursPerDay * workingDaysPerMonth) * CipiaPayload;
+                const ADAS_events_plus_snapshots = ((eventsPerHour * drivingHoursPerDay * workingDaysPerMonth) * (CipiaPayload + ADAS_snapshot)) / 1024;
+                const ADAS_full = ((eventsPerHour * drivingHoursPerDay * workingDaysPerMonth) * (CipiaPayload + ADAS_snapshot + ADAS_video * (timeBeforeEvent + timeAfterEvent))) / (1024 * 1024);
+
+                const DMS_ADAS_events = (eventsPerHour * drivingHoursPerDay * workingDaysPerMonth) * CipiaPayload;
+                const DMS_ADAS_events_plus_snapshots = DMS_events_plus_snapshots + ADAS_events_plus_snapshots;
+                const DMS_ADAS_full = DMS_full + ADAS_full;
+
+                const TimeToStoreInSDCard = ((sdCardSize * 1024) / videoStoragePerMinute) / 60;
+
+                // Display results
+                document.getElementById('DMS_events').innerText = DMS_events.toFixed(0) + ' kB';
+                document.getElementById('ADAS_events').innerText = ADAS_events.toFixed(0) + ' kB';
+                document.getElementById('DMS_ADAS_events').innerText = DMS_ADAS_events.toFixed(0) + ' kB';
+
+                document.getElementById('DMS_events_plus_snapshots').innerText = DMS_events_plus_snapshots.toFixed(2) + ' MB';
+                document.getElementById('ADAS_events_plus_snapshots').innerText = ADAS_events_plus_snapshots.toFixed(2) + ' MB';
+                document.getElementById('DMS_ADAS_events_plus_snapshots').innerText = DMS_ADAS_events_plus_snapshots.toFixed(2) + ' MB';
+
+                document.getElementById('DMS_full').innerText = DMS_full.toFixed(2) + ' GB';
+                document.getElementById('ADAS_full').innerText = ADAS_full.toFixed(2) + ' GB';
+                document.getElementById('DMS_ADAS_full').innerText = DMS_ADAS_full.toFixed(2) + ' GB';
+
+                document.getElementById('TimeToStoreInSDCard').innerText = 'Time to store in the SD card: ' + TimeToStoreInSDCard.toFixed(2) + ' hours';
+            } catch (error) {
+                // Display error message as an alert
+                alert(error.message);
+            }
+        }
+    </script>
+</body>
+</html>
